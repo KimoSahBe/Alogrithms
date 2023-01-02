@@ -1,0 +1,81 @@
+import java.util.ArrayList;
+import java.util.List;
+
+public class NeuralNetwork {
+    private List<Layer> layers;
+    private double learningRate;
+
+    public NeuralNetwork(int inputSize, int hiddenSize, int outputSize, double learningRate) {
+        this.learningRate = learningRate;
+        layers = new ArrayList<>();
+        layers.add(new Layer(inputSize, hiddenSize));
+        layers.add(new Layer(hiddenSize, outputSize));
+    }
+
+    public double[] predict(double[] inputs) {
+        return forwardPropagate(inputs);
+    }
+
+    public void train(double[] inputs, double[] targets) {
+        forwardPropagate(inputs);
+        backPropagate(targets);
+    }
+
+    private double[] forwardPropagate(double[] inputs) {
+        layers.get(0).setInputs(inputs);
+        for (int i = 0; i < layers.size() - 1; i++) {
+            layers.get(i + 1).setInputs(layers.get(i).getOutputs());
+        }
+        return layers.get(layers.size() - 1).getOutputs();
+    }
+
+    private void backPropagate(double[] targets) {
+        for (int i = layers.size() - 1; i >= 0; i--) {
+            Layer layer = layers.get(i);
+            layer.computeErrors(targets);
+            targets = layer.getErrors();
+        }
+        for (Layer layer : layers) {
+            layer.updateWeights(learningRate);
+        }
+    }
+}
+
+class Layer {
+    private double[] inputs;
+    private double[] weights;
+    private double[] outputs;
+    private double[] errors;
+
+    public Layer(int inputSize, int outputSize) {
+        inputs = new double[inputSize + 1]; // +1 for bias
+        weights = new double[(inputSize + 1) * outputSize];
+        outputs = new double[outputSize];
+        errors = new double[outputSize];
+        initWeights();
+    }
+
+    public void setInputs(double[] inputs) {
+        this.inputs = inputs;
+        computeOutputs();
+    }
+
+    public double[] getOutputs() {
+        return outputs;
+    }
+
+    public void computeErrors(double[] targets) {
+        for (int i = 0; i < errors.length; i++) {
+            errors[i] = outputs[i] - targets[i];
+        }
+    }
+
+    public double[] getErrors() {
+        double[] prevErrors = new double[inputs.length];
+        for (int i = 0; i < prevErrors.length; i++) {
+            for (int j = 0; j < errors.length; j++) {
+                prevErrors[i] += errors[j] * weights[i + j * inputs.length];
+            }
+        }
+        return prevErrors;
+    }
